@@ -1,4 +1,4 @@
-name: Python distros
+name: Python distrobution
 
 on:
   push:
@@ -34,6 +34,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-15, macos-15-intel, windows-2022]
+        include:
+          - os: macos-15
+            deployment_target: '15.0'
+          - os: macos-15-intel
+            deployment_target: '14.0'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,7 +51,9 @@ jobs:
           python -m pip install 'cibuildwheel==4.3.4'
           python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_ARCHS: auto
+          CIBW_ARCHS: auto64
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+          CIBW_ENVIRONMENT_MACOS: 'MACOSX_DEPLOYMENT_TARGET=${{ matrix.deployment_target }}'
           CIBW_ENVIRONMENT_WINDOWS: 'CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"'
       - uses: actions/upload-artifact@v4
         with:
