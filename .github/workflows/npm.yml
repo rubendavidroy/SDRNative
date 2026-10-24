@@ -55,6 +55,11 @@ jobs:
           Invoke-WebRequest "https://nodejs.org/download/release/v$v/node-v$v-headers.tar.gz" -OutFile $archive
           tar -xf $archive -C $env:RUNNER_TEMP
           $path = ($env:RUNNER_TEMP -replace '\\','/') + "/node-v$v"
+          $libDir = Join-Path $path 'win-x64'
+          New-Item -ItemType Directory -Force -Path $libDir | Out-Null
+          $nodeLib = Join-Path $libDir 'node.lib'
+          Invoke-WebRequest "https://nodejs.org/dist/v$v/win-x64/node.lib" -OutFile $nodeLib
+          if (-not (Test-Path $nodeLib)) { throw "Failed to download Node.js import library" }
           "NODE_API_INCLUDE_DIR=$path/include/node" >> $env:GITHUB_ENV
           "NODE_LIBRARY=$path/win-x64/node.lib" >> $env:GITHUB_ENV
           "CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $env:GITHUB_ENV
