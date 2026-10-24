@@ -40,11 +40,10 @@ target_include_directories(sdrnative_node PRIVATE
 )
 target_link_libraries(sdrnative_node PRIVATE SDRNative::sdrnative)
 
-# Windows addon links libusb and MSVC runtime statically
-# node.exe and system DLLs only remain runtime dependencies
+# Match the MSVC DLL runtime used by the core and libusb.
 if(MSVC)
     set_property(TARGET sdrnative_node PROPERTY
-        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
     target_link_libraries(sdrnative_node PRIVATE kernel32 user32)
 endif()
 
