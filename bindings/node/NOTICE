@@ -1,10 +1,9 @@
 SDRNative is licensed under the Mozilla Public License 2.0. See LICENSE.
 
-SDRNative uses libusb for USB access. libusb is licensed under
-LGPL-2.1-or-later. Its source and licence terms are available at:
-https://github.com/libusb/libusb
+SDRNative uses libusb for USB access. Distributed binary packages may
+include a dynamically linked copy of libusb. libusb is licensed under
+LGPL-2.1-or-later. Its license text is included under licenses/ and its
+source is available from https://github.com/libusb/libusb .
 
-libusb is not included in the SDRNative source tree. Binary distributors,
-particularly those statically linking libusb into a Node addon, must meet
-the applicable LGPL requirements. Including this notice alone may not be
-sufficient for a statically linked distribution.
+Users may replace the bundled libusb shared library with a compatible
+modified build, subject to the terms of the LGPL.

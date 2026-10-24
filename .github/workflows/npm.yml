@@ -1,0 +1,134 @@
+name: Node.js distribution
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prebuild:
+    name: Prebuild (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: linux-x64
+          - os: macos-15
+            target: darwin-arm64
+            deployment_target: '15.0'
+          - os: macos-15-intel
+            target: darwin-x64
+            deployment_target: '14.0'
+          - os: windows-2022
+            target: win32-x64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev pkg-config binutils
+
+      - name: Install macOS build dependencies
+        if: runner.os == 'macOS'
+        run: brew install libusb pkg-config
+
+      - name: Install Windows build dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          vcpkg install libusb:x64-windows
+          $v = node -p "process.versions.node"
+          $archive = Join-Path $env:RUNNER_TEMP 'headers.tar.gz'
+          Invoke-WebRequest "https://nodejs.org/download/release/v$v/node-v$v-headers.tar.gz" -OutFile $archive
+          tar -xf $archive -C $env:RUNNER_TEMP
+          $path = ($env:RUNNER_TEMP -replace '\\','/') + "/node-v$v"
+          "NODE_API_INCLUDE_DIR=$path/include/node" >> $env:GITHUB_ENV
+          "NODE_LIBRARY=$path/win-x64/node.lib" >> $env:GITHUB_ENV
+          "CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $env:GITHUB_ENV
+          "VCPKG_TARGET_TRIPLET=x64-windows" >> $env:GITHUB_ENV
+
+      - name: Build native addon
+        working-directory: bindings/node
+        env:
+          SDRNATIVE_NODE_REQUIRE_LIBUSB: 'ON'
+          CMAKE_OSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+        run: npm run build
+
+      - name: Bundle dependencies and test addon
+        working-directory: bindings/node
+        run: |
+          node scripts/package-native.js
+          npm test
+          node -e "const s=require('.'); if(s.version()!=='0.1.0'||s.abiVersion()!==1||!Array.isArray(s.listDevices())) process.exit(1)"
+
+      - name: Test clean npm installation
+        working-directory: bindings/node
+        run: node scripts/test-install.js
+
+      - name: Test Node.js 18 compatibility
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Verify addon on Node.js 18
+        working-directory: bindings/node
+        run: |
+          npm test
+          node -e "const s=require('.'); if(s.version()!=='0.1.0'||s.abiVersion()!==1) process.exit(1)"
+
+      - name: Archive platform bundle
+        shell: bash
+        run: tar -czf prebuild-${{ matrix.target }}.tar.gz -C bindings/node prebuilds/${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.target }}
+          path: prebuild-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  package:
+    name: npm tarball
+    needs: prebuild
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: artifacts
+          merge-multiple: true
+      - name: Assemble distribution
+        run: |
+          for archive in artifacts/prebuild-*.tar.gz; do
+            tar -xzf "$archive" -C bindings/node
+          done
+          node bindings/node/scripts/verify-package.js
+          mkdir -p release
+          cd bindings/node
+          npm pack --ignore-scripts --pack-destination ../../release
+          tar -tzf ../../release/sdrnative-0.1.0.tgz | grep 'prebuilds/win32-x64/libusb-1.0.dll'
+          tar -tzf ../../release/sdrnative-0.1.0.tgz | grep 'prebuilds/darwin-arm64/libusb-1.0.0.dylib'
+          tar -tzf ../../release/sdrnative-0.1.0.tgz | grep 'prebuilds/darwin-x64/libusb-1.0.0.dylib'
+          tar -tzf ../../release/sdrnative-0.1.0.tgz | grep 'prebuilds/linux-x64/libusb-1.0.so.0'
+          node scripts/test-install.js ../../release/sdrnative-0.1.0.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdrnative-npm-0.1.0
+          path: release/sdrnative-0.1.0.tgz
+          if-no-files-found: error

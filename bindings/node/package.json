@@ -29,7 +29,8 @@
     "README.md",
     "LICENSE",
     "NOTICE",
-    "build/Release/sdrnative_node.node"
+    "licenses/libusb-LGPL-2.1.txt",
+    "prebuilds/"
   ],
   "engines": {
     "node": ">=18"

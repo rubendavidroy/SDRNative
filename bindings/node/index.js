@@ -8,7 +8,14 @@
 'use strict';
 
 const path = require('node:path');
-const native = require(path.join(__dirname, 'build', 'Release', 'sdrnative_node.node'));
+const fs = require('node:fs');
+const prebuilt = path.join(__dirname, 'prebuilds', `${process.platform}-${process.arch}`, 'sdrnative_node.node');
+const local = path.join(__dirname, 'build', 'Release', 'sdrnative_node.node');
+const binary = fs.existsSync(prebuilt) ? prebuilt : local;
+if (!fs.existsSync(binary)) {
+  throw new Error(`SDRNative: no native addon for ${process.platform}-${process.arch}`);
+}
+const native = require(binary);
 
 const Mode = Object.freeze({ NONE: 0, DVBT: 1, IQ: 2 });
 const State = Object.freeze({ INVALID: 0, IDLE: 1, DVBT: 2, IQ: 3 });

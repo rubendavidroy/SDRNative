@@ -72,6 +72,13 @@ if(APPLE)
     target_link_options(sdrnative_node PRIVATE "-undefined" "dynamic_lookup")
 endif()
 
+if(UNIX AND NOT APPLE)
+    set_target_properties(sdrnative_node PROPERTIES
+        BUILD_WITH_INSTALL_RPATH ON
+        INSTALL_RPATH "$ORIGIN"
+    )
+endif()
+
 set_target_properties(sdrnative_node PROPERTIES
     PREFIX ""
     SUFFIX ".node"

@@ -14,8 +14,9 @@ npm install sdrnative
 ```
 
 A supported RTL2832U receiver and the appropriate USB driver or access
-permissions are needed for hardware use. The package includes the native
-addon for supported platforms; no separate CMake build is required.
+permissions are needed for hardware use. The package includes native binaries for Windows x64, Linux x64, macOS
+Intel (14+), and macOS Apple Silicon (15+). No compiler is needed for
+these installations.
 
 ## Basic Usage
 

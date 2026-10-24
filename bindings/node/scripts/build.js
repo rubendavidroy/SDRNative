@@ -27,6 +27,9 @@ const configureArgs = ['-S', root, '-B', buildDir, '-DCMAKE_BUILD_TYPE=Release']
 if (process.env.SDRNATIVE_NODE_REQUIRE_LIBUSB) {
   configureArgs.push(`-DSDRNATIVE_NODE_REQUIRE_LIBUSB=${process.env.SDRNATIVE_NODE_REQUIRE_LIBUSB}`);
 }
+for (const key of ['NODE_API_INCLUDE_DIR', 'CMAKE_TOOLCHAIN_FILE', 'VCPKG_TARGET_TRIPLET', 'CMAKE_OSX_DEPLOYMENT_TARGET']) {
+  if (process.env[key]) configureArgs.push(`-D${key}=${process.env[key]}`);
+}
 if (process.env.NODE_LIBRARY) {
   configureArgs.push(`-DNODE_LIBRARY=${process.env.NODE_LIBRARY}`);
 }
