@@ -1,0 +1,64 @@
+[build-system]
+requires = ["scikit-build-core>=0.11,<2"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "sdrnative"
+version = "0.1.0"
+description = "A library for direct control of SDR hardware, from raw IQ sampling to DVB-T transport stream reception."
+readme = "bindings/python/README.md"
+requires-python = ">=3.10"
+license = "MPL-2.0"
+license-files = ["LICENSE", "NOTICE", "licenses/libusb-LGPL-2.1.txt"]
+authors = [{name = "Ruben David Roy"}]
+keywords = ["sdr", "rtl2832u", "rtl-sdr", "dvb-t", "radio"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Source = "https://github.com/rubendavidroy/SDRNative"
+Issues = "https://github.com/rubendavidroy/SDRNative/issues"
+
+[tool.scikit-build]
+minimum-version = "0.11"
+wheel.packages = ["bindings/python/sdrnative"]
+wheel.py-api = "py3"
+cmake.build-type = "Release"
+sdist.include = [
+    "/CMakeLists.txt",
+    "/cmake/**",
+    "/src/**",
+    "/include/**",
+    "/bindings/python/sdrnative/**",
+    "/bindings/python/README.md",
+    "/LICENSE",
+    "/NOTICE",
+    "/licenses/libusb-LGPL-2.1.txt",
+    "/pyproject.toml",
+]
+
+[tool.scikit-build.cmake.define]
+SDRNATIVE_PYTHON_WHEEL = "ON"
+
+[tool.cibuildwheel]
+build = "cp310-*"
+skip = "*-musllinux_*"
+archs = ["auto"]
+test-command = "python {project}/bindings/python/tests/wheel_smoke.py"
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image = "manylinux_2_28"
+before-all = "dnf install -y libusb1-devel"
+
+[tool.cibuildwheel.macos]
+before-all = "brew install libusb pkg-config"
+
+[tool.cibuildwheel.windows]
+before-all = "vcpkg install libusb:x64-windows"
+repair-wheel-command = "delvewheel repair -w {dest_dir} --add-path C:/vcpkg/installed/x64-windows/bin --include libusb-1.0.dll {wheel}"

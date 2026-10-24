@@ -1,0 +1,20 @@
+# SDRNative
+# Installed CMake package config
+#
+# Copyright (c) 2026 Ruben Roy
+# SPDX-License-Identifier: MPL-2.0
+@PACKAGE_INIT@
+
+set(SDRNative_ABI_VERSION 1)
+set(SDRNative_VERSION_PRERELEASE "")
+
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+
+if(@SDRNATIVE_CONFIG_NEEDS_LIBUSB@)
+    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+    find_dependency(LibUSB1)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/SDRNativeTargets.cmake")
+check_required_components(SDRNative)

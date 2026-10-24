@@ -1,0 +1,41 @@
+{
+  "name": "sdrnative",
+  "version": "0.1.0",
+  "description": "A library for direct control of SDR hardware, from raw IQ sampling to DVB-T transport stream reception.",
+  "author": "Ruben David Roy",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rubendavidroy/SDRNative.git",
+    "directory": "bindings/node"
+  },
+  "homepage": "https://github.com/rubendavidroy/SDRNative#readme",
+  "bugs": {
+    "url": "https://github.com/rubendavidroy/SDRNative/issues"
+  },
+  "keywords": [
+    "sdr",
+    "software-defined-radio",
+    "rtl-sdr",
+    "rtl2832u",
+    "iq",
+    "dvb-t"
+  ],
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "build/Release/sdrnative_node.node"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test test/*.test.js"
+  }
+}
