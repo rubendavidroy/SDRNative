@@ -9,7 +9,11 @@ const root = path.resolve(__dirname, '..');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'sdrnative-npm-'));
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 function run(cmd, args, cwd = temp) {
-  const result = spawnSync(cmd, args, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
+  const result = spawnSync(cmd, args, {
+    cwd,
+    stdio: 'inherit',
+    shell: process.platform === 'win32' && /\.cmd$/i.test(cmd),
+  });
   if (result.error || result.status !== 0) throw result.error || new Error(`${cmd} failed`);
 }
 try {
