@@ -62,3 +62,4 @@ before-all = "brew install libusb pkg-config"
 [tool.cibuildwheel.windows]
 before-all = "vcpkg install libusb:x64-windows"
 repair-wheel-command = "delvewheel repair -w {dest_dir} --add-path C:/vcpkg/installed/x64-windows/bin --include libusb-1.0.dll {wheel}"
+config-settings = { "build-dir" = "build/wheels/{wheel_tag}" }
