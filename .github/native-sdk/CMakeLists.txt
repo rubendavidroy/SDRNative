@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+project(sdrnative_sdk_check LANGUAGES C)
+find_package(SDRNative 0.1 CONFIG REQUIRED)
+add_executable(sdrnative_sdk_check main.c)
+target_link_libraries(sdrnative_sdk_check PRIVATE SDRNative::sdrnative)

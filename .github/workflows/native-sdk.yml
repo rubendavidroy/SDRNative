@@ -1,0 +1,178 @@
+name: Native C SDK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sdk:
+    name: SDK (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: linux-x64
+          - os: macos-15
+            target: macos-arm64
+            deployment_target: '15.0'
+          - os: macos-15-intel
+            target: macos-x64
+            deployment_target: '14.0'
+          - os: windows-2022
+            target: windows-x64
+    steps:
+      - name: Check out SDK packaging files
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check out v0.1.0 native source
+        uses: actions/checkout@v4
+        with:
+          ref: 4a8a19fab68c29b7d7d81ed46e54b92cb8a26cd3
+          path: source
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Linux dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev pkg-config binutils
+
+      - name: macOS dependencies
+        if: runner.os == 'macOS'
+        shell: bash
+        run: brew install libusb pkg-config
+
+      - name: Windows dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: vcpkg install libusb:x64-windows
+
+      - name: Build and install SDK (macOS/Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+        run: |
+          set -euo pipefail
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            rpath='$ORIGIN'
+          else
+            rpath='@loader_path'
+          fi
+          args=(
+            -S source -B build/native
+            -DCMAKE_BUILD_TYPE=Release
+            -DBUILD_SHARED_LIBS=ON
+            -DSDRNATIVE_REQUIRE_LIBUSB=ON
+            -DSDRNATIVE_BUILD_TESTS=OFF
+            -DSDRNATIVE_BUILD_EXAMPLES=OFF
+            "-DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/stage/sdrnative"
+            "-DCMAKE_INSTALL_RPATH=$rpath"
+          )
+          if [[ "$RUNNER_OS" == macOS ]]; then
+            args+=("-DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.deployment_target }}")
+          fi
+          cmake "${args[@]}"
+          cmake --build build/native --parallel 4
+          cmake --install build/native
+
+      - name: Build and install SDK (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:GITHUB_WORKSPACE 'stage/sdrnative'
+          cmake -S source -B build/native -A x64 `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DBUILD_SHARED_LIBS=ON `
+            -DSDRNATIVE_REQUIRE_LIBUSB=ON `
+            -DSDRNATIVE_BUILD_TESTS=OFF `
+            -DSDRNATIVE_BUILD_EXAMPLES=OFF `
+            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
+            -DVCPKG_TARGET_TRIPLET=x64-windows `
+            "-DCMAKE_INSTALL_PREFIX=$prefix"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/native --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --install build/native --config Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Bundle libusb and create SDK archive
+        shell: bash
+        run: |
+          python scripts/package-native-sdk.py \
+            --stage stage --source source --out release \
+            --target "${{ matrix.target }}"
+
+      - name: Test installed SDK (macOS/Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S .github/native-sdk -B build/sdk-consumer \
+            -DCMAKE_BUILD_TYPE=Release \
+            "-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/stage/sdrnative"
+          cmake --build build/sdk-consumer --parallel
+          if [[ "$RUNNER_OS" == macOS ]]; then
+            export DYLD_LIBRARY_PATH="$GITHUB_WORKSPACE/stage/sdrnative/lib"
+          else
+            export LD_LIBRARY_PATH="$GITHUB_WORKSPACE/stage/sdrnative/lib"
+          fi
+          ./build/sdk-consumer/sdrnative_sdk_check
+
+      - name: Test installed SDK (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:GITHUB_WORKSPACE 'stage/sdrnative'
+          cmake -S .github/native-sdk -B build/sdk-consumer -A x64 "-DCMAKE_PREFIX_PATH=$prefix"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/sdk-consumer --config Release
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:PATH = (Join-Path $prefix 'bin') + ';' + $env:PATH
+          & .\build\sdk-consumer\Release\sdrnative_sdk_check.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-sdk-${{ matrix.target }}
+          path: release/sdrnative-0.1.0-${{ matrix.target }}.*
+          if-no-files-found: error
+
+  bundle:
+    name: SDK archives
+    needs: sdk
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-sdk-*
+          path: release
+          merge-multiple: true
+      - name: Verify all four SDK archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            release/sdrnative-0.1.0-linux-x64.tar.gz \
+            release/sdrnative-0.1.0-macos-arm64.tar.gz \
+            release/sdrnative-0.1.0-macos-x64.tar.gz \
+            release/sdrnative-0.1.0-windows-x64.zip; do
+            test -s "$f"
+          done
+          (cd release && sha256sum * > SHA256SUMS-native)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-sdk-release
+          path: release/*
+          if-no-files-found: error
