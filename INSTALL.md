@@ -1,18 +1,37 @@
-# Build
+# Installing SDRNative
 
-The library requires CMake 3.20+, a C11 compiler and libusb 1.0 development
-files for hardware access.
+The library requires CMake 3.20+, a C11 compiler and libusb 1.0 development files for hardware access. SDK Archives, Python wheels and NPM package are all also available on the [Releases page](https://github.com/rubendavidroy/SDRNative/releases).
 
-On Windows x64, install Visual Studio C++ Build Tools, CMake and vcpkg, set
-`VCPKG_ROOT`, then run `scripts\build_windows.ps1` in PowerShell. A
-WinUSB-compatible driver is needed for the receiver interface.
+---
 
-On macOS:
+**On Windows x64:**
+
+Prerequisites:
+- Visual Studio C++ Build Tools
+- CMake
+- vcpkg (set `VCPKG_ROOT`)
+
+Then build via:
+```ps
+scripts\build_windows.ps1
+```
+*NOTE: A WinUSB-compatible driver is needed for the receiver interface.*
+
+---
+
+**On macOS:**
+
+Prerequisites:
+- CMake
+- libusb
+- pkg-config
+
+Then build via:
 
 ```sh
-brew install cmake libusb pkg-config
 ./scripts/build_macos.sh
 ```
+---
 
 On Linux (experimental):
 
@@ -28,9 +47,7 @@ cmake --build build
 cmake --install build --prefix ./_install
 ```
 
-CMake consumers can use `find_package(SDRNative 0.1 CONFIG REQUIRED)` and link
-`SDRNative::sdrnative`. Set `CMAKE_PREFIX_PATH` to the installation prefix
-if necessary. The shared library must be on the system's library search path.
+CMake consumers can use `find_package(SDRNative 0.1 CONFIG REQUIRED)` and link `SDRNative::sdrnative`. Set `CMAKE_PREFIX_PATH` to the installation prefix if necessary. The shared library must be on the system's library search path.
 
 ## Python
 
@@ -38,8 +55,7 @@ if necessary. The shared library must be on the system's library search path.
 python -m pip install sdrnative
 ```
 
-Requires Python 3.10+. See [bindings/python/README.md](bindings/python/README.md)
-for usage.
+Requires Python 3.10+. See [bindings/python/README.md](bindings/python/README.md) for usage.
 
 ## Node.js
 
@@ -47,8 +63,6 @@ for usage.
 npm install sdrnative
 ```
 
-Requires Node.js 18+. TypeScript declarations are included. See
-[bindings/node/README.md](bindings/node/README.md).
+Requires Node.js 18+. TypeScript declarations are included. See [bindings/node/README.md](bindings/node/README.md) for usage.
 
-USB drivers and device permissions are platform-specific and aren't configured
-by the package managers.
+USB drivers and device permissions are platform-specific and aren't configured by the package managers.
