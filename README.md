@@ -24,6 +24,6 @@ under [examples/](examples/). Hardware limits are listed in
 Python and Node.js package usage is documented in their respective
 [Python](bindings/python/README.md) and [Node.js](bindings/node/README.md) READMEs.
 
-DVB-T2, service/media decoding and software demodulators are not supported.
+DVB-T2 is not supported (yet!).
 
 MPL-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
